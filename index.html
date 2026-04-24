@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<meta name="theme-color" content="#080B14"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="FocusTask"/>
+<link rel="manifest" href="manifest.json"/>
+<title>FocusTask</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Mulish:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080B14;
+    --surface: #0F1523;
+    --surface2: #151D2E;
+    --accent: #00E5FF;
+    --accent2: #FF6B6B;
+    --accent3: #69FF97;
+    --accent4: #FFD93D;
+    --text: #E8EDF5;
+    --muted: #4A5568;
+    --border: rgba(0,229,255,0.12);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Mulish', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; flex-direction: column; height: 100dvh; height: 100vh; }
+  #header {
+    padding: calc(var(--safe-top) + 14px) 18px 14px;
+    background: linear-gradient(180deg, #0B1020 0%, transparent 100%);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  #scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 16px 100px;
+    overscroll-behavior-y: contain;
+  }
+  #bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 12px 20px calc(var(--safe-bottom) + 12px);
+    background: linear-gradient(0deg, #080B14 70%, transparent 100%);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 100;
+  }
+
+  /* ── HEADER ── */
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .app-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+  .app-title span { color: var(--accent); }
+  .header-time { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+  /* ── STATS ── */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 4px; }
+  .stat-card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 12px 10px;
+    border: 1px solid var(--border);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .stat-card.total::before { background: var(--accent); }
+  .stat-card.pending::before { background: var(--accent4); }
+  .stat-card.done::before { background: var(--accent3); }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-card.total .stat-num { color: var(--accent); }
+  .stat-card.pending .stat-num { color: var(--accent4); }
+  .stat-card.done .stat-num { color: var(--accent3); }
+  .stat-label { font-size: 10px; color: var(--muted); margin-top: 3px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* ── FILTERS ── */
+  .filter-row { display: flex; gap: 8px; margin: 14px 0 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Mulish', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #080B14; }
+  .filter-btn.active.pend { background: var(--accent4); border-color: var(--accent4); }
+  .filter-btn.active.done { background: var(--accent3); border-color: var(--accent3); }
+
+  /* ── PERMISSION BANNER ── */
+  .perm-banner {
+    background: linear-gradient(135deg, #0F1A2E, #0A1520);
+    border: 1.5px solid rgba(0,229,255,0.25);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .perm-icon { font-size: 24px; flex-shrink: 0; }
+  .perm-text { flex: 1; font-size: 13px; line-height: 1.4; color: #8EAAC8; }
+  .perm-text strong { color: var(--accent); font-size: 14px; display: block; margin-bottom: 2px; }
+  .perm-btn {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    background: var(--accent);
+    color: #080B14;
+    border: none;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    font-family: 'Mulish', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── TASK CARD ── */
+  .task-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, opacity 0.3s;
+    animation: cardIn 0.35s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes cardIn { from { opacity:0; transform:translateY(18px) scale(0.96); } to { opacity:1; transform:none; } }
+  .task-card.removing { animation: cardOut 0.3s ease forwards; }
+  @keyframes cardOut { to { opacity:0; transform:translateX(60px) scale(0.94); } }
+  .task-card.completed { opacity: 0.55; }
+  .task-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
+    background: var(--cat-color, var(--accent));
+  }
+  .task-top { display: flex; align-items: flex-start; gap: 12px; }
+  .check-wrap {
+    width: 26px; height: 26px; flex-shrink: 0;
+    border-radius: 8px;
+    border: 2px solid var(--cat-color, var(--accent));
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 1px;
+  }
+  .check-wrap.checked { background: var(--accent3); border-color: var(--accent3); }
+  .check-wrap svg { width: 14px; height: 14px; stroke: #080B14; stroke-width: 2.5; fill: none; opacity: 0; transition: opacity 0.15s; }
+  .check-wrap.checked svg { opacity: 1; }
+  .task-body { flex: 1; min-width: 0; }
+  .task-text {
+    font-size: 15px; font-weight: 600; line-height: 1.4;
+    word-break: break-word;
+    transition: all 0.2s;
+  }
+  .task-text.done-text { text-decoration: line-through; color: var(--muted); }
+  .task-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+  .tag {
+    font-size: 10px; font-weight: 700; padding: 3px 9px;
+    border-radius: 20px; letter-spacing: 0.3px;
+  }
+  .tag-cat { background: color-mix(in srgb, var(--cat-color) 18%, transparent); color: var(--cat-color); border: 1px solid color-mix(in srgb, var(--cat-color) 30%, transparent); }
+  .tag-pri { background: color-mix(in srgb, var(--pri-color) 18%, transparent); color: var(--pri-color); }
+  .tag-done { background: rgba(105,255,151,0.15); color: var(--accent3); }
+  .tag-late { background: rgba(255,107,107,0.15); color: var(--accent2); }
+
+  /* Task media preview */
+  .task-media { margin-top: 10px; border-radius: 12px; overflow: hidden; max-height: 160px; position: relative; }
+  .task-media img, .task-media video { width: 100%; display: block; border-radius: 12px; max-height: 160px; object-fit: cover; }
+  .media-label { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.65); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+
+  /* Task reminder time */
+  .task-remind { display: flex; align-items: center; gap: 5px; margin-top: 8px; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .task-remind .ri-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent4); display: inline-block; animation: blink 1.4s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  .del-btn {
+    width: 32px; height: 32px; flex-shrink: 0;
+    border-radius: 10px; border: none;
+    background: rgba(255,107,107,0.12);
+    color: var(--accent2); font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+    margin-top: 0;
+  }
+  .del-btn:active { background: rgba(255,107,107,0.3); }
+
+  /* ── FAB ── */
+  .fab {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    color: #080B14;
+    font-size: 28px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 0 rgba(0,229,255,0.4);
+    animation: fabPulse 2.5s infinite;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.9); }
+  @keyframes fabPulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,0.35)} 50%{box-shadow:0 0 0 14px rgba(0,229,255,0)} }
+
+  .nav-btn {
+    background: none; border: none; color: var(--muted);
+    font-size: 22px; cursor: pointer; padding: 8px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px; transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-label { font-size: 10px; font-weight: 700; font-family: 'Mulish', sans-serif; }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(4,6,14,0.85);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: flex-end;
+    animation: bgIn 0.2s ease;
+  }
+  @keyframes bgIn { from{opacity:0} to{opacity:1} }
+  .modal-sheet {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 28px 28px 0 0;
+    border-top: 1px solid var(--border);
+    padding: 0 0 calc(var(--safe-bottom) + 16px);
+    animation: sheetUp 0.32s cubic-bezier(.34,1.46,.64,1);
+    max-height: 96dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  @keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal-handle { width: 36px; height: 4px; background: var(--muted); border-radius: 2px; margin: 14px auto 18px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; padding: 0 20px 16px; }
+  .field-label { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; padding: 0 20px; }
+  .field-wrap { padding: 0 20px 14px; }
+  .text-input, .text-area, .select-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid rgba(0,229,255,0.15);
+    border-radius: 14px;
+    padding: 13px 14px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Mulish', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .text-input:focus, .text-area:focus, .select-input:focus { border-color: var(--accent); }
+  .text-area { min-height: 80px; resize: none; }
+  .select-input { appearance: none; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px 14px; }
+
+  /* Time picker */
+  .time-row { display: flex; gap: 8px; padding: 0 20px 14px; align-items: center; }
+  .time-input {
+    flex: 1; background: var(--bg); border: 1.5px solid rgba(0,229,255,0.15);
+    border-radius: 14px; padding: 13px 14px; color: var(--text);
+    font-size: 15px; font-family: 'Mulish', sans-serif; outline: none;
+    -webkit-appearance: none; transition: border-color 0.2s;
+  }
+  .time-input:focus { border-color: var(--accent4); }
+
+  /* Media buttons */
+  .media-row { display: flex; gap: 10px; padding: 0 20px 14px; }
+  .media-btn {
+    flex: 1; padding: 12px 8px;
+    background: var(--bg);
+    border: 1.5px dashed rgba(0,229,255,0.2);
+    border-radius: 14px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Mulish', sans-serif;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .media-btn .mb-icon { font-size: 22px; }
+  .media-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.06); }
+
+  /* Media preview inside modal */
+  .media-preview { margin: 0 20px 14px; border-radius: 14px; overflow: hidden; max-height: 200px; position: relative; }
+  .media-preview img, .media-preview video { width: 100%; max-height: 200px; object-fit: cover; display: block; }
+  .media-del { position: absolute; top: 8px; right: 8px; background: rgba(255,107,107,0.9); border: none; border-radius: 8px; color: #fff; font-size: 14px; padding: 4px 9px; cursor: pointer; font-weight: 700; }
+
+  .submit-btn {
+    margin: 6px 20px 0;
+    width: calc(100% - 40px);
+    padding: 16px;
+    background: var(--accent);
+    border: none; border-radius: 16px;
+    color: #080B14;
+    font-size: 16px; font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(0,229,255,0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .submit-btn:active { transform: scale(0.97); box-shadow: none; }
+
+  /* ── TOAST NOTIFICATIONS ── */
+  #toast-wrap {
+    position: fixed; top: calc(var(--safe-top) + 12px); left: 12px; right: 12px;
+    z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+    pointer-events: all;
+    animation: toastIn 0.35s cubic-bezier(.34,1.46,.64,1) both;
+    border: 1px solid transparent;
+    backdrop-filter: blur(12px);
+    max-width: 400px;
+    margin: 0 auto;
+    width: 100%;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  @keyframes toastIn { from{opacity:0;transform:translateY(-16px) scale(0.94)} to{opacity:1;transform:none} }
+  .toast.success { background: rgba(15,35,25,0.96); border-color: rgba(105,255,151,0.35); color: var(--accent3); }
+  .toast.warning { background: rgba(35,25,10,0.96); border-color: rgba(255,217,61,0.35); color: var(--accent4); }
+  .toast.info { background: rgba(10,20,35,0.96); border-color: rgba(0,229,255,0.25); color: var(--accent); }
+  .toast.error { background: rgba(35,10,10,0.96); border-color: rgba(255,107,107,0.35); color: var(--accent2); }
+  .toast.remind { background: rgba(25,15,35,0.96); border-color: rgba(0,229,255,0.3); color: #B0AAFF; }
+  .toast-icon { font-size: 18px; flex-shrink: 0; }
+  .toast-fade { animation: toastFade 0.3s ease forwards; }
+  @keyframes toastFade { to { opacity:0; transform:translateY(-8px); } }
+
+  /* ── PENDING BANNER ── */
+  .pending-banner {
+    background: linear-gradient(135deg, rgba(255,217,61,0.08), rgba(255,107,107,0.06));
+    border: 1px solid rgba(255,217,61,0.2);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--accent4);
+    font-weight: 600;
+  }
+  .pb-icon { font-size: 20px; animation: wobble 2s infinite; }
+  @keyframes wobble { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-12deg)} 40%{transform:rotate(12deg)} 60%{transform:rotate(-6deg)} 80%{transform:rotate(6deg)} }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 56px 20px; }
+  .empty-icon { font-size: 52px; margin-bottom: 14px; opacity: 0.7; }
+  .empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--muted); }
+  .empty-sub { font-size: 13px; color: #2A3448; margin-top: 6px; }
+
+  /* ── CAMERA MODAL ── */
+  #camera-modal {
+    position: fixed; inset: 0; z-index: 600;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  #camera-video { width: 100%; max-height: 70vh; object-fit: cover; }
+  .cam-controls { display: flex; gap: 20px; padding: 24px; justify-content: center; }
+  .cam-btn {
+    width: 64px; height: 64px; border-radius: 50%; border: 3px solid #fff;
+    background: rgba(255,255,255,0.15); color: #fff;
+    font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  .cam-capture { background: var(--accent); border-color: var(--accent); width: 72px; height: 72px; font-size: 26px; }
+  .cam-close { position: absolute; top: calc(var(--safe-top) + 16px); right: 16px; background: rgba(0,0,0,0.5); border: none; color: #fff; font-size: 22px; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .cam-mode-toggle { position: absolute; top: calc(var(--safe-top) + 16px); left: 16px; background: rgba(0,0,0,0.5); border: none; color: #fff; font-size: 13px; font-weight: 700; border-radius: 20px; padding: 8px 14px; cursor: pointer; font-family: 'Mulish', sans-serif; }
+
+  /* ── INSTALL PROMPT ── */
+  #install-banner {
+    position: fixed; bottom: calc(var(--safe-bottom) + 76px); left: 12px; right: 12px;
+    background: linear-gradient(135deg, #0A1525, #0F1E30);
+    border: 1.5px solid rgba(0,229,255,0.3);
+    border-radius: 18px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+    z-index: 200;
+    animation: sheetUp 0.4s cubic-bezier(.34,1.46,.64,1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .install-icon { font-size: 32px; flex-shrink: 0; }
+  .install-text { flex: 1; }
+  .install-text strong { font-size: 14px; color: var(--accent); display: block; font-family: 'Syne', sans-serif; }
+  .install-text span { font-size: 12px; color: #6A8AAA; }
+  .install-btn { background: var(--accent); color: #080B14; border: none; border-radius: 12px; padding: 10px 16px; font-weight: 800; font-size: 13px; font-family: 'Mulish', sans-serif; cursor: pointer; flex-shrink: 0; }
+  .install-dismiss { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+
+  /* scrollbar */
+  #scroll-area::-webkit-scrollbar { width: 3px; }
+  #scroll-area::-webkit-scrollbar-track { background: transparent; }
+  #scroll-area::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.15); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- HEADER -->
+  <div id="header">
+    <div class="header-top">
+      <div>
+        <div class="app-title">Focus<span>Task</span></div>
+        <div class="header-time" id="live-time">--:-- --</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="requestAllPermissions()" style="background:rgba(0,229,255,0.1);border:1.5px solid rgba(0,229,255,0.25);border-radius:12px;color:var(--accent);font-size:11px;font-weight:800;padding:8px 12px;cursor:pointer;font-family:'Mulish',sans-serif;letter-spacing:0.3px;" title="Enable permissions">🔔 Permissions</button>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card total"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+      <div class="stat-card pending"><div class="stat-num" id="stat-pending">0</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card done"><div class="stat-num" id="stat-done">0</div><div class="stat-label">Done</div></div>
+    </div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div id="scroll-area">
+    <!-- Permission banner -->
+    <div id="perm-banner" class="perm-banner" style="margin-top:14px;">
+      <div class="perm-icon">🔐</div>
+      <div class="perm-text"><strong>Enable Full Features</strong>Allow notifications, camera & storage for the best experience.</div>
+      <button class="perm-btn" onclick="requestAllPermissions()">Allow</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn pend" data-filter="pending" onclick="setFilter('pending',this)">⏳ Pending</button>
+      <button class="filter-btn done" data-filter="done" onclick="setFilter('done',this)">✅ Done</button>
+      <button class="filter-btn" data-filter="high" onclick="setFilter('high',this)">🔴 High</button>
+      <button class="filter-btn" data-filter="today" onclick="setFilter('today',this)">📅 Today</button>
+    </div>
+
+    <!-- Pending reminder banner -->
+    <div id="pending-banner" class="pending-banner" style="display:none;">
+      <div class="pb-icon">⏳</div>
+      <div id="pending-banner-text">0 tasks need attention</div>
+    </div>
+
+    <!-- Task list -->
+    <div id="task-list"></div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div id="bottom-bar">
+    <button class="nav-btn active" onclick="setTab('tasks',this)">
+      <span>📋</span><span class="nav-label">Tasks</span>
+    </button>
+    <button class="fab" onclick="openAddModal()" aria-label="Add task">+</button>
+    <button class="nav-btn" onclick="setTab('settings',this)">
+      <span>⚙️</span><span class="nav-label">Settings</span>
+    </button>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-wrap"></div>
+
+<!-- ADD TASK MODAL -->
+<div id="add-modal" class="modal-bg" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✨ New Task</div>
+
+    <div class="field-wrap">
+      <div class="field-label">Task Name *</div>
+      <input type="text" id="inp-title" class="text-input" placeholder="What needs to be done?" maxlength="120" autocomplete="off"/>
+    </div>
+
+    <div class="field-wrap">
+      <div class="field-label">Notes (optional)</div>
+      <textarea id="inp-notes" class="text-area" placeholder="Add extra details..."></textarea>
+    </div>
+
+    <div class="row-2">
+      <div>
+        <div class="field-label" style="padding:0;margin-bottom:6px;">Category</div>
+        <select id="inp-cat" class="select-input">
+          <option value="Work" data-color="#00E5FF">💼 Work</option>
+          <option value="Personal" data-color="#FF6B6B">❤️ Personal</option>
+          <option value="Health" data-color="#69FF97">💪 Health</option>
+          <option value="Study" data-color="#FFD93D">📚 Study</option>
+          <option value="Home" data-color="#FF9FF3">🏠 Home</option>
+          <option value="Finance" data-color="#54A0FF">💰 Finance</option>
+          <option value="Other" data-color="#A29BFE">🔖 Other</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label" style="padding:0;margin-bottom:6px;">Priority</div>
+        <select id="inp-priority" class="select-input">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-wrap">
+      <div class="field-label">Reminder Time</div>
+      <input type="datetime-local" id="inp-time" class="text-input" style="color-scheme:dark;"/>
+    </div>
+
+    <div class="field-label">Attach Photo / Video Reminder</div>
+    <div class="media-row">
+      <button class="media-btn" onclick="openCamera('photo')" id="cam-photo-btn">
+        <span class="mb-icon">📷</span><span>Photo</span>
+      </button>
+      <button class="media-btn" onclick="openCamera('video')" id="cam-video-btn">
+        <span class="mb-icon">🎥</span><span>Video</span>
+      </button>
+      <button class="media-btn" onclick="document.getElementById('file-input').click()">
+        <span class="mb-icon">📁</span><span>Gallery</span>
+      </button>
+    </div>
+    <input type="file" id="file-input" accept="image/*,video/*" style="display:none" onchange="handleFileInput(event)"/>
+
+    <div id="media-preview-wrap" style="display:none;" class="media-preview">
+      <img id="media-preview-img" style="display:none;"/>
+      <video id="media-preview-vid" style="display:none;" controls playsinline muted></video>
+      <button class="media-del" onclick="clearMedia()">✕</button>
+    </div>
+
+    <button class="submit-btn" onclick="addTask()">＋ Add Task</button>
+    <div style="height:10px;"></div>
+  </div>
+</div>
+
+<!-- CAMERA MODAL -->
+<div id="camera-modal" style="display:none;">
+  <button class="cam-close" onclick="closeCamera()">✕</button>
+  <button class="cam-mode-toggle" id="cam-mode-label" onclick="toggleCamMode()">📷 Photo</button>
+  <video id="camera-video" autoplay playsinline muted></video>
+  <div class="cam-controls">
+    <button class="cam-btn" onclick="switchCamera()" title="Flip camera">🔄</button>
+    <button class="cam-btn cam-capture" onclick="captureMedia()" id="capture-btn">📷</button>
+    <button class="cam-btn" onclick="closeCamera()">✕</button>
+  </div>
+  <canvas id="cam-canvas" style="display:none;"></canvas>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner" style="display:none;">
+  <div class="install-icon">📲</div>
+  <div class="install-text">
+    <strong>Install FocusTask</strong>
+    <span>Add to home screen for offline access</span>
+  </div>
+  <button class="install-btn" onclick="installApp()">Install</button>
+  <button class="install-dismiss" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let tasks = JSON.parse(localStorage.getItem('ft_tasks') || '[]');
+let currentFilter = 'all';
+let deferredInstallPrompt = null;
+let cameraStream = null;
+let cameraFacing = 'environment';
+let cameraMode = 'photo'; // photo | video
+let mediaRecorder = null;
+let recordedChunks = [];
+let attachedMedia = null; // { type:'image'|'video', dataUrl }
+let notifPermission = Notification.permission;
+let reminderTimers = {};
+
+const CAT_COLORS = {
+  Work:'#00E5FF', Personal:'#FF6B6B', Health:'#69FF97',
+  Study:'#FFD93D', Home:'#FF9FF3', Finance:'#54A0FF', Other:'#A29BFE'
+};
+const PRI_COLORS = { high:'#FF6B6B', medium:'#FFD93D', low:'#69FF97' };
+
+// ════════════════════════════════════════════════════════
+//  SERVICE WORKER REGISTRATION
+// ════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    console.log('SW registered', reg.scope);
+  }).catch(e => console.log('SW error', e));
+}
+
+// ════════════════════════════════════════════════════════
+//  INSTALL PROMPT
+// ════════════════════════════════════════════════════════
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  setTimeout(() => { document.getElementById('install-banner').style.display = 'flex'; }, 3000);
+});
+function installApp() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(r => {
+    document.getElementById('install-banner').style.display = 'none';
+    if (r.outcome === 'accepted') toast('📲 App installed! Open from home screen.', 'success');
+    deferredInstallPrompt = null;
+  });
+}
+window.addEventListener('appinstalled', () => toast('🎉 FocusTask installed successfully!', 'success'));
+
+// ════════════════════════════════════════════════════════
+//  PERMISSIONS
+// ════════════════════════════════════════════════════════
+async function requestAllPermissions() {
+  // Notifications
+  if ('Notification' in window && Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    notifPermission = perm;
+    if (perm === 'granted') {
+      toast('🔔 Notifications enabled!', 'success');
+      vibrate([100, 50, 100]);
+    } else {
+      toast('🔕 Notifications blocked. Enable in browser settings.', 'warning');
+    }
+  } else if (Notification.permission === 'granted') {
+    toast('✅ Notifications already enabled!', 'info');
+  }
+
+  // Camera (just informs user — actual request happens when opening camera)
+  toast('📷 Camera access will be requested when you add a photo/video.', 'info');
+
+  // Storage (localStorage is already available, just confirm)
+  try {
+    localStorage.setItem('ft_storage_test', '1');
+    localStorage.removeItem('ft_storage_test');
+    toast('💾 Offline storage: Active', 'success');
+  } catch(e) {
+    toast('⚠️ Storage not available.', 'error');
+  }
+
+  // Hide perm banner
+  document.getElementById('perm-banner').style.display = 'none';
+
+  // Re-schedule all reminders
+  scheduleAllReminders();
+}
+
+// ════════════════════════════════════════════════════════
+//  LIVE CLOCK
+// ════════════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = h % 12 || 12;
+  const mm = String(m).padStart(2,'0');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('live-time').textContent =
+    `${hh}:${mm} ${ampm} · ${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const wrap = document.getElementById('toast-wrap');
+  const icons = { success:'✅', warning:'⚠️', info:'ℹ️', error:'❌', remind:'⏰' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'💬'}</span><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('toast-fade');
+    setTimeout(() => el.remove(), 350);
+  }, 3600);
+}
+
+// ════════════════════════════════════════════════════════
+//  VIBRATION
+// ════════════════════════════════════════════════════════
+function vibrate(pattern) {
+  if ('vibrate' in navigator) navigator.vibrate(pattern);
+}
+
+// ════════════════════════════════════════════════════════
+//  SOUND (Web Audio API — offline)
+// ════════════════════════════════════════════════════════
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const patterns = {
+      add:    [[523,0],[659,0.1],[784,0.2]],
+      done:   [[784,0],[880,0.1],[1047,0.2],[1319,0.35]],
+      delete: [[400,0],[300,0.12]],
+      remind: [[660,0],[660,0.15],[880,0.3]],
+      warn:   [[440,0],[370,0.15]],
+    };
+    (patterns[type]||patterns.add).forEach(([freq,delay]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = type === 'done' ? 'sine' : 'triangle';
+      gain.gain.setValueAtTime(0.12, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.2);
+    });
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════
+//  NOTIFICATION
+// ════════════════════════════════════════════════════════
+function sendNotification(title, body, tag) {
+  if (Notification.permission === 'granted') {
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, { body, vibrate:[200,100,200], tag: tag||'ft', renotify:true, icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text y="52" font-size="52">✅</text></svg>' });
+        });
+      } else {
+        new Notification(title, { body, tag: tag||'ft', renotify:true });
+      }
+    } catch(e) { console.log('Notif error', e); }
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  REMINDER SCHEDULING
+// ════════════════════════════════════════════════════════
+function scheduleAllReminders() {
+  // Clear old timers
+  Object.values(reminderTimers).forEach(clearTimeout);
+  reminderTimers = {};
+  const now = Date.now();
+  tasks.filter(t => !t.done && t.remindAt).forEach(t => {
+    const delay = t.remindAt - now;
+    if (delay > 0) {
+      reminderTimers[t.id] = setTimeout(() => {
+        sendNotification('⏰ Task Reminder', t.title, 'remind-'+t.id);
+        toast(`⏰ Reminder: "${t.title}"`, 'remind');
+        vibrate([300,100,300,100,300]);
+        playSound('remind');
+        // Also message SW for true background
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type:'SCHEDULE_REMINDER', task: t.title, delay: 0 });
+        }
+      }, delay);
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  BACKGROUND PENDING REMINDER (every 60s while app is open)
+// ════════════════════════════════════════════════════════
+setInterval(() => {
+  const pending = tasks.filter(t => !t.done);
+  if (pending.length > 0 && document.visibilityState === 'visible') {
+    // Rotate through tasks for in-app toast
+    const t = pending[Math.floor(Math.random() * pending.length)];
+    toast(`⏰ Still pending: "${t.title}"`, 'remind');
+    vibrate([100]);
+    playSound('remind');
+  }
+}, 60000);
+
+// Also fire a system notification if app is hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    const pending = tasks.filter(t => !t.done);
+    if (pending.length > 0) {
+      sendNotification(`FocusTask — ${pending.length} pending`, pending.map(t => `• ${t.title}`).slice(0,3).join('\n'), 'bg-remind');
+    }
+  }
+});
+
+// ════════════════════════════════════════════════════════
+//  SAVE / LOAD
+// ════════════════════════════════════════════════════════
+function saveTasks() {
+  // Save without large media blobs to keep storage small
+  const toSave = tasks.map(t => ({ ...t, media: t.media ? { type: t.media.type } : null }));
+  localStorage.setItem('ft_tasks', JSON.stringify(toSave));
+  // But keep full media in memory
+  updateStats();
+  renderTasks();
+  scheduleAllReminders();
+}
+
+function updateStats() {
+  const total = tasks.length;
+  const done = tasks.filter(t => t.done).length;
+  const pending = total - done;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-done').textContent = done;
+
+  const banner = document.getElementById('pending-banner');
+  if (pending > 0) {
+    banner.style.display = 'flex';
+    document.getElementById('pending-banner-text').textContent =
+      `${pending} pending task${pending > 1 ? 's' : ''} need${pending === 1 ? 's' : ''} your attention`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER TASKS
+// ════════════════════════════════════════════════════════
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTasks();
+}
+
+function renderTasks() {
+  const now = Date.now();
+  let list = [...tasks];
+
+  if (currentFilter === 'pending') list = list.filter(t => !t.done);
+  else if (currentFilter === 'done') list = list.filter(t => t.done);
+  else if (currentFilter === 'high') list = list.filter(t => t.priority === 'high' && !t.done);
+  else if (currentFilter === 'today') {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+    list = list.filter(t => t.createdAt >= todayStart.getTime() && t.createdAt <= todayEnd.getTime());
+  }
+
+  // Sort: pending high first, then by creation
+  list.sort((a,b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const po = {high:0,medium:1,low:2};
+    if (po[a.priority] !== po[b.priority]) return po[a.priority] - po[b.priority];
+    return b.createdAt - a.createdAt;
+  });
+
+  const container = document.getElementById('task-list');
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty">
+      <div class="empty-icon">${currentFilter==='done'?'🏆':currentFilter==='pending'?'🎉':'✨'}</div>
+      <div class="empty-title">${currentFilter==='done'?'Nothing completed yet':currentFilter==='pending'?'All caught up!':'No tasks yet'}</div>
+      <div class="empty-sub">Tap + to add your first task</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(t => {
+    const cc = CAT_COLORS[t.cat] || '#A29BFE';
+    const pc = PRI_COLORS[t.priority] || '#FFD93D';
+    const isLate = !t.done && t.remindAt && t.remindAt < now;
+    const remindStr = t.remindAt ? new Date(t.remindAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+
+    let mediaHtml = '';
+    if (t.media) {
+      if (t.media.type === 'image' && t.media.dataUrl) {
+        mediaHtml = `<div class="task-media"><span class="media-label">📷 Photo</span><img src="${t.media.dataUrl}" loading="lazy"/></div>`;
+      } else if (t.media.type === 'video' && t.media.dataUrl) {
+        mediaHtml = `<div class="task-media"><span class="media-label">🎥 Video</span><video src="${t.media.dataUrl}" controls playsinline muted></video></div>`;
+      } else {
+        mediaHtml = `<div class="task-media" style="padding:10px;background:rgba(0,229,255,0.06);display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);">${t.media.type==='video'?'🎥':'📷'} Media attached</div>`;
+      }
+    }
+
+    return `<div class="task-card ${t.done?'completed':''}" id="card-${t.id}" style="--cat-color:${cc};--pri-color:${pc};">
+      <div class="task-top">
+        <button class="check-wrap ${t.done?'checked':''}" onclick="toggleTask('${t.id}')">
+          <svg viewBox="0 0 14 14"><polyline points="2,7 6,11 12,3"/></svg>
+        </button>
+        <div class="task-body">
+          <div class="task-text ${t.done?'done-text':''}">${escHtml(t.title)}</div>
+          ${t.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.4;">${escHtml(t.notes)}</div>` : ''}
+          <div class="task-meta">
+            <span class="tag tag-cat">${t.cat}</span>
+            <span class="tag tag-pri">${t.priority==='high'?'🔴':t.priority==='medium'?'🟡':'🟢'} ${t.priority}</span>
+            ${t.done ? '<span class="tag tag-done">✅ Done</span>' : ''}
+            ${isLate ? '<span class="tag tag-late">⚠️ Overdue</span>' : ''}
+          </div>
+          ${remindStr ? `<div class="task-remind"><span class="ri-dot"></span>Reminder: ${remindStr}${isLate?' (overdue)':''}</div>` : ''}
+          ${mediaHtml}
+        </div>
+        <button class="del-btn" onclick="deleteTask('${t.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════════════════
+//  TASK CRUD
+// ════════════════════════════════════════════════════════
+function addTask() {
+  const title = document.getElementById('inp-title').value.trim();
+  if (!title) {
+    document.getElementById('inp-title').style.borderColor = 'var(--accent2)';
+    setTimeout(() => document.getElementById('inp-title').style.borderColor = '', 1200);
+    vibrate([80,40,80]);
+    toast('⚠️ Please enter a task name!', 'warning');
+    return;
+  }
+
+  const timeVal = document.getElementById('inp-time').value;
+  const remindAt = timeVal ? new Date(timeVal).getTime() : null;
+
+  const task = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    title,
+    notes: document.getElementById('inp-notes').value.trim(),
+    cat: document.getElementById('inp-cat').value,
+    priority: document.getElementById('inp-priority').value,
+    done: false,
+    createdAt: Date.now(),
+    remindAt,
+    media: attachedMedia ? { ...attachedMedia } : null,
+  };
+
+  tasks.unshift(task);
+  saveTasks();
+  closeModal();
+
+  playSound('add');
+  vibrate([50, 30, 80]);
+  toast(`✅ "${title}" added!`, 'success');
+
+  if (remindAt) {
+    const eta = new Date(remindAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    sendNotification('Task Added — FocusTask', `"${title}" will remind you at ${eta}`, 'add-'+task.id);
+    toast(`⏰ Reminder set for ${eta}`, 'info');
+  }
+}
+
+function toggleTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  t.doneAt = t.done ? Date.now() : null;
+  saveTasks();
+
+  if (t.done) {
+    playSound('done');
+    vibrate([80, 40, 120, 40, 200]);
+    toast(`🎉 "${t.title}" completed!`, 'success');
+    sendNotification('Task Completed! 🎉', `"${t.title}" is done. Great work!`, 'done-'+id);
+  } else {
+    playSound('warn');
+    vibrate([60]);
+    toast(`↩️ "${t.title}" reopened`, 'info');
+  }
+}
+
+function deleteTask(id) {
+  const card = document.getElementById('card-'+id);
+  if (card) card.classList.add('removing');
+  const t = tasks.find(x => x.id === id);
+  setTimeout(() => {
+    tasks = tasks.filter(x => x.id !== id);
+    if (reminderTimers[id]) { clearTimeout(reminderTimers[id]); delete reminderTimers[id]; }
+    saveTasks();
+    playSound('delete');
+    vibrate([40,20,40]);
+    toast(`🗑️ "${t?.title||'Task'}" removed`, 'warning');
+  }, 280);
+}
+
+// ════════════════════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════════════════════
+function openAddModal() {
+  document.getElementById('inp-title').value = '';
+  document.getElementById('inp-notes').value = '';
+  document.getElementById('inp-time').value = '';
+  document.getElementById('inp-cat').value = 'Work';
+  document.getElementById('inp-priority').value = 'medium';
+  clearMedia();
+  attachedMedia = null;
+  document.getElementById('add-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('inp-title').focus(), 350);
+}
+function closeModal() {
+  document.getElementById('add-modal').style.display = 'none';
+  closeCamera();
+}
+
+// ════════════════════════════════════════════════════════
+//  CAMERA
+// ════════════════════════════════════════════════════════
+async function openCamera(mode) {
+  cameraMode = mode;
+  document.getElementById('cam-mode-label').textContent = mode === 'photo' ? '📷 Photo' : '🎥 Video';
+  document.getElementById('capture-btn').textContent = mode === 'photo' ? '📷' : '⏺';
+
+  try {
+    const constraints = { video: { facingMode: cameraFacing, width:{ideal:1280}, height:{ideal:720} }, audio: mode === 'video' };
+    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+    document.getElementById('camera-video').srcObject = cameraStream;
+    document.getElementById('camera-modal').style.display = 'flex';
+    document.getElementById('cam-photo-btn').classList.toggle('active', mode==='photo');
+    document.getElementById('cam-video-btn').classList.toggle('active', mode==='video');
+  } catch(e) {
+    toast('📷 Camera access denied. Please allow camera in browser settings.', 'error');
+    vibrate([80,40,80]);
+  }
+}
+
+function closeCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder = null;
+  }
+  document.getElementById('camera-modal').style.display = 'none';
+}
+
+function switchCamera() {
+  cameraFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+  openCamera(cameraMode);
+}
+
+function toggleCamMode() {
+  cameraMode = cameraMode === 'photo' ? 'video' : 'photo';
+  openCamera(cameraMode);
+}
+
+function captureMedia() {
+  if (cameraMode === 'photo') {
+    capturePhoto();
+  } else {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      stopVideo();
+    } else {
+      startVideo();
+    }
+  }
+}
+
+function capturePhoto() {
+  const video = document.getElementById('camera-video');
+  const canvas = document.getElementById('cam-canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  attachedMedia = { type:'image', dataUrl };
+  showMediaPreview(dataUrl, 'image');
+  closeCamera();
+  toast('📷 Photo captured!', 'success');
+  vibrate([60,30,60]);
+}
+
+function startVideo() {
+  recordedChunks = [];
+  const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+  try { mediaRecorder = new MediaRecorder(cameraStream, options); }
+  catch(e) { mediaRecorder = new MediaRecorder(cameraStream); }
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = finalizeVideo;
+  mediaRecorder.start(100);
+  document.getElementById('capture-btn').textContent = '⏹';
+  document.getElementById('cam-mode-label').textContent = '🔴 Recording...';
+  toast('🎥 Recording started...', 'info');
+  vibrate([100]);
+}
+
+function stopVideo() {
+  if (mediaRecorder) mediaRecorder.stop();
+  document.getElementById('capture-btn').textContent = '⏺';
+}
+
+function finalizeVideo() {
+  const blob = new Blob(recordedChunks, { type:'video/webm' });
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    const dataUrl = reader.result;
+    attachedMedia = { type:'video', dataUrl };
+    showMediaPreview(dataUrl, 'video');
+    closeCamera();
+    toast('🎥 Video saved!', 'success');
+    vibrate([60,30,60]);
+  };
+  reader.readAsDataURL(blob);
+}
+
+function handleFileInput(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    const isVid = file.type.startsWith('video');
+    attachedMedia = { type: isVid ? 'video' : 'image', dataUrl: reader.result };
+    showMediaPreview(reader.result, isVid ? 'video' : 'image');
+    toast(`${isVid?'🎥':'📷'} ${isVid?'Video':'Photo'} attached!`, 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function showMediaPreview(dataUrl, type) {
+  const wrap = document.getElementById('media-preview-wrap');
+  const img = document.getElementById('media-preview-img');
+  const vid = document.getElementById('media-preview-vid');
+  wrap.style.display = 'block';
+  if (type === 'image') { img.src = dataUrl; img.style.display='block'; vid.style.display='none'; }
+  else { vid.src = dataUrl; vid.style.display='block'; img.style.display='none'; }
+}
+
+function clearMedia() {
+  attachedMedia = null;
+  document.getElementById('media-preview-wrap').style.display = 'none';
+  document.getElementById('media-preview-img').src = '';
+  document.getElementById('media-preview-vid').src = '';
+  document.getElementById('cam-photo-btn').classList.remove('active');
+  document.getElementById('cam-video-btn').classList.remove('active');
+}
+
+// ════════════════════════════════════════════════════════
+//  SETTINGS TAB
+// ════════════════════════════════════════════════════════
+function setTab(tab, btn) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (tab === 'settings') showSettings();
+  else { document.getElementById('scroll-area').innerHTML = ''; initMainView(); }
+}
+
+function showSettings() {
+  const nPending = tasks.filter(t=>!t.done).length;
+  document.getElementById('scroll-area').innerHTML = `
+    <div style="padding:20px 0;">
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:20px;">⚙️ Settings</div>
+
+      <div style="background:var(--surface);border-radius:18px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border);">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">🔔 Notifications</div>
+          <div style="font-size:12px;color:var(--muted);">Status: <span style="color:${Notification.permission==='granted'?'var(--accent3)':'var(--accent2)'};">${Notification.permission}</span></div>
+        </div>
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border);">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">💾 Tasks Stored</div>
+          <div style="font-size:12px;color:var(--muted);">${tasks.length} tasks · ${nPending} pending · All saved offline</div>
+        </div>
+        <div style="padding:16px 18px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">📱 PWA Status</div>
+          <div style="font-size:12px;color:var(--muted);">Runs ${window.matchMedia('(display-mode: standalone)').matches ? '✅ as installed app' : '🌐 in browser'}</div>
+        </div>
+      </div>
+
+      <button onclick="requestAllPermissions()" style="width:100%;padding:14px;background:var(--accent);color:#080B14;border:none;border-radius:16px;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;margin-bottom:10px;">🔐 Grant All Permissions</button>
+
+      <button onclick="if(confirm('Clear ALL tasks?')){tasks=[];saveTasks();toast('🗑️ All tasks cleared','warning');}" style="width:100%;padding:14px;background:rgba(255,107,107,0.12);color:var(--accent2);border:1.5px solid rgba(255,107,107,0.25);border-radius:16px;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;margin-bottom:10px;">🗑️ Clear All Tasks</button>
+
+      <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--muted);">FocusTask v1.0 · 100% Offline · No internet required</div>
+    </div>`;
+}
+
+function initMainView() {
+  document.getElementById('scroll-area').innerHTML = `
+    <div id="perm-banner" class="perm-banner" style="margin-top:14px;display:${Notification.permission==='granted'?'none':'flex'};">
+      <div class="perm-icon">🔐</div>
+      <div class="perm-text"><strong>Enable Full Features</strong>Allow notifications, camera & storage.</div>
+      <button class="perm-btn" onclick="requestAllPermissions()">Allow</button>
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn pend" data-filter="pending" onclick="setFilter('pending',this)">⏳ Pending</button>
+      <button class="filter-btn done" data-filter="done" onclick="setFilter('done',this)">✅ Done</button>
+      <button class="filter-btn" data-filter="high" onclick="setFilter('high',this)">🔴 High</button>
+      <button class="filter-btn" data-filter="today" onclick="setFilter('today',this)">📅 Today</button>
+    </div>
+    <div id="pending-banner" class="pending-banner" style="display:none;">
+      <div class="pb-icon">⏳</div>
+      <div id="pending-banner-text"></div>
+    </div>
+    <div id="task-list"></div>`;
+  currentFilter = 'all';
+  updateStats();
+  renderTasks();
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+updateStats();
+renderTasks();
+scheduleAllReminders();
+
+// Auto-request notifications after 2s
+setTimeout(() => {
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(p => {
+      notifPermission = p;
+      if (p === 'granted') {
+        toast('🔔 Notifications enabled automatically!', 'success');
+        document.getElementById('perm-banner').style.display = 'none';
+        scheduleAllReminders();
+      }
+    });
+  }
+}, 2000);
+
+// Send welcome notif
+window.addEventListener('load', () => {
+  const pending = tasks.filter(t => !t.done).length;
+  if (pending > 0 && Notification.permission === 'granted') {
+    setTimeout(() => sendNotification('FocusTask 👋', `You have ${pending} pending task${pending>1?'s':''}. Let\'s get things done!`, 'welcome'), 1500);
+  }
+});
+</script>
+</body>
+</html>
